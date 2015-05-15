@@ -124,4 +124,24 @@ class vim(
       require => Package[$package],
     }
   }
+
+  $user = hiera('directory_owner')
+  exec { 'Add pathogen vim':
+    command => "mkdir -p /home/${user}/.vim/autoload /home/${user}/.vim/bundle && curl -LSso /home/${user}/.vim/autoload/pathogen.vim https://tpo.pe/pathogen.vim",
+    path => ['/usr/bin', '/bin'],
+    user => $user,
+    creates => "/home/${user}/.vim/autoload"
+  }
+  $vim_plugins = hiera('vim_plugins', {})
+  create_resources('plugin', $vim_plugins, {'user' => $user})
+
+  define plugin($repo, $user) {
+    vcsrepo { "/home/${user}/.vim/bundle/${name}":
+      ensure => present,
+      provider => git,
+      source => $repo,
+      owner => $user,
+      require => Exec['Add pathogen vim'],
+    }
+  }
 }
